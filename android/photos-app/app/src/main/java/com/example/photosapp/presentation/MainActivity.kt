@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import com.example.photosapp.presentation.components.BottomNavBar
 import com.example.photosapp.presentation.components.MemoriesSection
 import com.example.photosapp.presentation.components.Memory
+import com.example.photosapp.presentation.components.MonthHeader
 import com.example.photosapp.presentation.components.NavItem
 import com.example.photosapp.presentation.components.PermissionHandler
 import com.example.photosapp.presentation.components.TopBar
@@ -95,11 +96,16 @@ private fun PhotosContent() {
                 modifier = Modifier.fillMaxWidth()
             )
 
+            // Month headers with placeholder content
+            MonthHeader(monthName = "January")
+
             // Placeholder for photo grid content
             Text(
                 text = "Photos App - ${selectedNavItem.label} Tab",
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
+
+            MonthHeader(monthName = "December 2024")
         }
     }
 }
