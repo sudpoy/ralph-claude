@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 PACKAGE_NAME="com.example.photosapp"
-MAIN_ACTIVITY="com.example.photosapp.MainActivity"
+MAIN_ACTIVITY="com.example.photosapp.presentation.MainActivity"
 
 # Find the actual Android project directory
 if [ -d "$PROJECT_DIR/PhotosApp" ]; then
