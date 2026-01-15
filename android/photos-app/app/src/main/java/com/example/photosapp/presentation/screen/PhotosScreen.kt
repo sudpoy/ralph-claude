@@ -1,20 +1,36 @@
 package com.example.photosapp.presentation.screen
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Photo
+import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.photosapp.presentation.components.BottomNavBar
 import com.example.photosapp.presentation.components.MemoriesSection
@@ -67,6 +83,7 @@ fun PhotosScreen(
         PhotosScreenContent(
             uiState = uiState,
             memories = sampleMemories,
+            onRetry = { viewModel.loadPhotos() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -84,6 +101,7 @@ fun PhotosScreen(
 private fun PhotosScreenContent(
     uiState: PhotosUiState,
     memories: List<Memory>,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -101,36 +119,142 @@ private fun PhotosScreenContent(
                 LoadingContent()
             }
             is PhotosUiState.Error -> {
-                ErrorContent(message = uiState.message)
+                ErrorContent(
+                    message = uiState.message,
+                    onRetry = onRetry
+                )
             }
             is PhotosUiState.Success -> {
-                PhotosByMonthContent(photosByMonth = uiState.photosByMonth)
+                if (uiState.photos.isEmpty()) {
+                    EmptyContent()
+                } else {
+                    PhotosByMonthContent(photosByMonth = uiState.photosByMonth)
+                }
             }
         }
     }
 }
 
 /**
- * Loading state placeholder.
- * Will be enhanced in US-013.
+ * Loading state with centered spinner.
+ * Shows a circular progress indicator while photos are being fetched.
  */
 @Composable
 private fun LoadingContent(
     modifier: Modifier = Modifier
 ) {
-    // Placeholder for loading state - will be implemented in US-013
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(300.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(48.dp),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Loading photos...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 /**
- * Error state placeholder.
- * Will be enhanced in US-013.
+ * Empty state when no photos are found.
+ * Shows a photo icon with message explaining no photos were found.
+ */
+@Composable
+private fun EmptyContent(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(300.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Photo,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "No photos found",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Take some photos or add them to your device",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Error state with retry button.
+ * Shows error message and allows user to retry loading photos.
  */
 @Composable
 private fun ErrorContent(
     message: String,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Placeholder for error state - will be implemented in US-013
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(300.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Warning,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Something went wrong",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = onRetry) {
+                Text("Retry")
+            }
+        }
+    }
 }
 
 /**
