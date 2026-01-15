@@ -3,6 +3,9 @@ prd.json
 progress.txt
 .last-branch
 
+# Screenshots from UI validation (generated, not useful to check in)
+screenshots/
+
 # Archive is optional to commit
 # archive/
 
