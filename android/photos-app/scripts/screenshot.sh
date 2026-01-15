@@ -6,7 +6,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+TIMESTAMP=$(date +date_%m_%d_time_%H_%M)
 OUTPUT_PATH=${1:-"$PROJECT_DIR/screenshots/screenshot_$TIMESTAMP.png"}
 
 # Create screenshots directory if needed

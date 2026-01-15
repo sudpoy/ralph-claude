@@ -12,8 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 STORY_ID=${1:-"manual"}
 VALIDATION_SCRIPT=${2:-""}
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-SCREENSHOTS_DIR="$PROJECT_DIR/screenshots/$STORY_ID"
+TIMESTAMP=$(date +date_%m_%d_time_%H_%M)
+SCREENSHOTS_DIR="$PROJECT_DIR/screenshots"
 MOCK_DIR="$PROJECT_DIR/mocks"
 
 # Source UI actions
@@ -89,10 +89,14 @@ wait_for_ui 1
 SCROLL_SCREENSHOT="$SCREENSHOTS_DIR/${STORY_ID}_scrolled_${TIMESTAMP}.png"
 take_screenshot "$SCROLL_SCREENSHOT"
 
+echo "Screenshots saved:"
+echo "  - $MAIN_SCREENSHOT"
+echo "  - $SCROLL_SCREENSHOT"
+
 echo ""
 
 # Step 8: Generate validation report
-REPORT_FILE="$SCREENSHOTS_DIR/validation_report.md"
+REPORT_FILE="$SCREENSHOTS_DIR/${STORY_ID}_report_${TIMESTAMP}.md"
 echo "Step 8: Generating validation report..."
 
 cat > "$REPORT_FILE" << EOF
