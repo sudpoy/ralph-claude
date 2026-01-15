@@ -4,38 +4,56 @@
 
 Ralph is an autonomous AI agent loop that runs Claude Code repeatedly until all PRD items are complete. Each iteration is a fresh Claude instance with clean context.
 
+This repository supports multiple projects across Android, iOS, and Web platforms.
+
+## Project Structure
+
+```
+ralph-claude/
+├── android/           # Android projects
+│   ├── AGENTS.md      # Android-specific patterns
+│   └── <project>/     # Individual projects
+├── ios/               # iOS projects
+│   ├── AGENTS.md      # iOS-specific patterns
+│   └── <project>/     # Individual projects
+└── web/               # Web projects
+    ├── AGENTS.md      # Web-specific patterns
+    └── <project>/     # Individual projects
+```
+
 ## Commands
 
 ```bash
+# Run Ralph for a specific project
+./ralph.sh <platform>/<project> [max_iterations]
+
+# Examples:
+./ralph.sh ios/photos-app 10
+./ralph.sh android/shopping-app 15
+./ralph.sh web/dashboard 5
+
 # Run the flowchart dev server
 cd flowchart && npm run dev
-
-# Build the flowchart
-cd flowchart && npm run build
-
-# Run Ralph (from your project that has prd.json)
-./ralph.sh [max_iterations]
 ```
 
 ## Key Files
 
+### Shared (Root Level)
 - `ralph.sh` - The bash loop that spawns fresh Claude Code instances
 - `prompt.md` - Instructions given to each Claude instance
-- `prd.json.example` - Example PRD format
 - `commands/prd.md` - Slash command for generating PRDs (`/prd`)
 - `commands/ralph.md` - Slash command for converting PRDs to JSON (`/ralph`)
 - `flowchart/` - Interactive React Flow diagram explaining how Ralph works
 
-## Flowchart
+### Platform-Specific
+- `android/AGENTS.md` - Android development patterns and commands
+- `ios/AGENTS.md` - iOS development patterns and commands
+- `web/AGENTS.md` - Web development patterns and commands
 
-The `flowchart/` directory contains an interactive visualization built with React Flow. It's designed for presentations - click through to reveal each step with animations.
-
-To run locally:
-```bash
-cd flowchart
-npm install
-npm run dev
-```
+### Per-Project
+- `prd.md` - Human-readable PRD document
+- `prd.json` - Machine-readable format for Ralph
+- `progress.txt` - Append-only learnings log
 
 ## Patterns
 
@@ -43,3 +61,5 @@ npm run dev
 - Memory persists via git history, `progress.txt`, and `prd.json`
 - Stories should be small enough to complete in one context window
 - Always update AGENTS.md with discovered patterns for future iterations
+- Platform-specific patterns go in `<platform>/AGENTS.md`
+- Project-specific learnings go in `<project>/progress.txt`

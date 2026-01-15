@@ -8,6 +8,43 @@ Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
 [Read my in-depth article on how I use Ralph](https://x.com/ryancarson/status/2008548371712135632)
 
+## Project Structure
+
+This repository supports multiple projects across different platforms:
+
+```
+ralph-claude/
+├── README.md                    # This file
+├── AGENTS.md                    # Shared agent instructions
+├── ralph.sh                     # Shared Ralph loop
+├── prompt.md                    # Shared prompt template
+├── commands/                    # Shared slash commands
+│   ├── prd.md                   # /prd command
+│   └── ralph.md                 # /ralph command
+├── flowchart/                   # Interactive visualization
+│
+├── android/
+│   ├── AGENTS.md                # Android-specific patterns
+│   └── <project-name>/
+│       ├── prd.md               # Human-readable PRD
+│       ├── prd.json             # Machine-readable (for Ralph)
+│       └── progress.txt         # Progress log
+│
+├── ios/
+│   ├── AGENTS.md                # iOS-specific patterns
+│   └── <project-name>/
+│       ├── prd.md
+│       ├── prd.json
+│       └── progress.txt
+│
+└── web/
+    ├── AGENTS.md                # Web-specific patterns
+    └── <project-name>/
+        ├── prd.md
+        ├── prd.json
+        └── progress.txt
+```
+
 ## Prerequisites
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
@@ -16,33 +53,28 @@ Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
 ## Setup
 
-### Option 1: Copy to your project
-
-Copy the ralph files into your project:
-
-```bash
-# From your project root
-mkdir -p scripts/ralph
-cp /path/to/ralph/ralph.sh scripts/ralph/
-cp /path/to/ralph/prompt.md scripts/ralph/
-chmod +x scripts/ralph/ralph.sh
-```
-
-### Option 2: Install slash commands globally
+### Install slash commands globally
 
 Copy the commands to your Claude Code config for use across all projects:
 
 ```bash
 mkdir -p ~/.claude/commands
-cp /path/to/ralph/commands/prd.md ~/.claude/commands/
-cp /path/to/ralph/commands/ralph.md ~/.claude/commands/
+cp commands/prd.md ~/.claude/commands/
+cp commands/ralph.md ~/.claude/commands/
 ```
 
 This makes `/prd` and `/ralph` available as slash commands in Claude Code.
 
 ## Workflow
 
-### 1. Create a PRD
+### 1. Create a new project
+
+```bash
+# Create project directory under the appropriate platform
+mkdir -p ios/my-new-app
+```
+
+### 2. Create a PRD
 
 Use the `/prd` command to generate a detailed requirements document:
 
@@ -50,22 +82,31 @@ Use the `/prd` command to generate a detailed requirements document:
 /prd Create a PRD for [your feature description]
 ```
 
-Answer the clarifying questions. The command saves output to `tasks/prd-[feature-name].md`.
+Answer the clarifying questions. Save the output to your project directory as `prd.md`:
 
-### 2. Convert PRD to Ralph format
+```bash
+# Save to: ios/my-new-app/prd.md
+```
+
+### 3. Convert PRD to Ralph format
 
 Use the `/ralph` command to convert the markdown PRD to JSON:
 
 ```
-/ralph Convert tasks/prd-[feature-name].md to prd.json
+/ralph Convert ios/my-new-app/prd.md to prd.json
 ```
 
 This creates `prd.json` with user stories structured for autonomous execution.
 
-### 3. Run Ralph
+### 4. Run Ralph
 
 ```bash
-./scripts/ralph/ralph.sh [max_iterations]
+./ralph.sh <project_dir> [max_iterations]
+
+# Examples:
+./ralph.sh ios/my-new-app 10
+./ralph.sh android/shopping-app 15
+./ralph.sh web/dashboard 5
 ```
 
 Default is 10 iterations.
@@ -86,12 +127,20 @@ Ralph will:
 |------|---------|
 | `ralph.sh` | The bash loop that spawns fresh Claude Code instances |
 | `prompt.md` | Instructions given to each Claude instance |
-| `prd.json` | User stories with `passes` status (the task list) |
-| `prd.json.example` | Example PRD format for reference |
-| `progress.txt` | Append-only learnings for future iterations |
 | `commands/prd.md` | Slash command for generating PRDs (`/prd`) |
 | `commands/ralph.md` | Slash command for converting PRDs to JSON (`/ralph`) |
 | `flowchart/` | Interactive visualization of how Ralph works |
+| `android/AGENTS.md` | Android-specific development patterns |
+| `ios/AGENTS.md` | iOS-specific development patterns |
+| `web/AGENTS.md` | Web-specific development patterns |
+
+### Per-Project Files
+
+| File | Purpose |
+|------|---------|
+| `prd.md` | Human-readable PRD document |
+| `prd.json` | Machine-readable user stories with `passes` status |
+| `progress.txt` | Append-only learnings for future iterations |
 
 ## Flowchart
 
@@ -147,9 +196,12 @@ Ralph only works if there are feedback loops:
 - Tests verify behavior
 - CI must stay green (broken code compounds across iterations)
 
-### Browser Verification for UI Stories
+### Browser/Simulator Verification for UI Stories
 
-Frontend stories must include browser verification in acceptance criteria. Ralph will use the WebFetch tool or a browser MCP server to navigate to the page and confirm changes work.
+Frontend stories must include verification in acceptance criteria:
+- **Web:** Use WebFetch tool or browser MCP server
+- **iOS:** Use simulator with `xcrun simctl` commands
+- **Android:** Use emulator with `adb` commands
 
 ### Stop Condition
 
@@ -160,11 +212,11 @@ When all stories have `passes: true`, Ralph outputs `<promise>COMPLETE</promise>
 Check current state:
 
 ```bash
-# See which stories are done
-cat prd.json | jq '.userStories[] | {id, title, passes}'
+# See which stories are done (replace with your project path)
+cat ios/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 
 # See learnings from previous iterations
-cat progress.txt
+cat ios/my-app/progress.txt
 
 # Check git history
 git log --oneline -10
@@ -179,7 +231,7 @@ Edit `prompt.md` to customize Ralph's behavior for your project:
 
 ## Archiving
 
-Ralph automatically archives previous runs when you start a new feature (different `branchName`). Archives are saved to `archive/YYYY-MM-DD-feature-name/`.
+Ralph automatically archives previous runs when you start a new feature (different `branchName`). Archives are saved to `<project>/archive/YYYY-MM-DD-feature-name/`.
 
 ## References
 
