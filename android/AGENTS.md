@@ -39,6 +39,7 @@ Each project has validation scripts in `<project>/scripts/`:
 | `install-and-run.sh` | Build, install, and launch app |
 | `screenshot.sh` | Capture screenshot from emulator |
 | `validate.sh` | Full validation: build, install, run, screenshot |
+| `ui-actions.sh` | ADB UI helpers (tap, scroll, type) - source this |
 
 ### Usage Examples
 
@@ -147,6 +148,122 @@ app/src/main/java/com/example/appname/
 - Instrumented tests in `src/androidTest/`
 - UI tests use Compose testing APIs
 
+## UI Validation (MANDATORY for UI Stories)
+
+For any story that changes UI, you MUST validate using screenshots and AI vision comparison.
+
+### Validation Workflow
+
+1. **Run validation script:**
+   ```bash
+   ./scripts/validate.sh <STORY_ID>
+   ```
+
+2. **Read the captured screenshot:**
+   ```
+   Read <project>/screenshots/<STORY_ID>/<STORY_ID>_main_<timestamp>.png
+   ```
+
+3. **Read the mock reference:**
+   ```
+   Read <project>/mocks/main.PNG
+   ```
+
+4. **Compare using AI vision** - Verify:
+   - Layout matches mock structure
+   - All required UI elements are present
+   - Colors and spacing are correct
+   - Interactive elements are visible
+   - No visual glitches
+
+5. **Only mark `passes: true` if ALL criteria are met**
+
+### UI Navigation with ADB
+
+For complex validations, use the UI action helpers:
+
+```bash
+# Source the helpers first
+source ./scripts/ui-actions.sh
+
+# Tap actions
+tap 500 300                    # Tap at coordinates
+tap_percent 50 50              # Tap at screen percentage (center)
+long_press 500 300 1000        # Long press (1 second)
+double_tap 500 300             # Double tap
+
+# Scroll actions
+scroll_down                    # Scroll down 30%
+scroll_up                      # Scroll up 30%
+scroll_left                    # Horizontal scroll left
+scroll_right                   # Horizontal scroll right
+
+# Navigation
+tap_bottom_nav 0               # Tap first bottom nav item
+tap_bottom_nav 1               # Tap second item, etc.
+press_back                     # Press back button
+press_home                     # Press home button
+
+# Text input
+type_text "hello world"        # Type text
+clear_text                     # Clear text field
+
+# App control
+launch_app <package> <activity>
+stop_app <package>
+clear_app_data <package>
+grant_permission               # Grant permission dialog
+
+# Screenshots
+take_screenshot /path/to.png   # Capture screenshot
+
+# Wait
+wait_for_ui 3                  # Wait 3 seconds
+wait_for_app <package> 10      # Wait for app (10s timeout)
+```
+
+### Screenshot Comparison Criteria
+
+When comparing screenshots to mocks, check:
+
+| Aspect | What to Verify |
+|--------|----------------|
+| **Layout** | Elements in correct positions (top bar, content, bottom nav) |
+| **Presence** | All required UI components visible |
+| **Styling** | Colors approximately match, proper spacing |
+| **Content** | Images load (not blank), text is correct |
+| **State** | Correct selection states (tabs, buttons) |
+| **Consistency** | Overall appearance matches mock |
+
+### Validation Failure
+
+If validation fails:
+- Do NOT mark `passes: true`
+- Document specific failures in progress.txt
+- Note which acceptance criteria failed
+- Describe screenshot vs. expected
+- Next iteration will fix the issue
+
+### Example Validation Output
+
+```markdown
+## Validation: US-006 - Bottom Navigation
+
+Screenshots compared:
+- screenshots/US-006/US-006_main.png
+- mocks/main.PNG
+
+Verification:
+✅ Navigation bar visible at bottom
+✅ 4 tabs present
+✅ Photos tab selected (filled icon)
+❌ Ask icon uses wrong icon (star vs sparkle)
+
+Result: FAIL - Need to fix Ask icon
+```
+
+See `<project>/VALIDATION_GUIDE.md` for detailed story-specific validation instructions.
+
 ## Common Gotchas
 
 - Always update `AndroidManifest.xml` when adding new activities
@@ -155,3 +272,4 @@ app/src/main/java/com/example/appname/
 - Use `@HiltViewModel` on ViewModels
 - ProGuard rules may need updates when adding new libraries
 - MediaStore queries require READ_MEDIA_IMAGES (API 33+) or READ_EXTERNAL_STORAGE
+- **UI stories require emulator validation** - never mark passes without screenshots
