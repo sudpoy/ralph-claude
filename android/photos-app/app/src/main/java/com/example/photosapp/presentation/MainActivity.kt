@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.example.photosapp.presentation.components.PermissionHandler
 import com.example.photosapp.presentation.theme.PhotosAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -33,5 +34,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun PhotosApp() {
-    Text(text = "Photos App")
+    PermissionHandler(
+        onPermissionGranted = {
+            PhotosContent()
+        }
+    )
+}
+
+@Composable
+private fun PhotosContent() {
+    Text(text = "Photos App - Permission Granted!")
 }
