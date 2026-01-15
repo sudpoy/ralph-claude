@@ -2,9 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Storage permissions for accessing photos -->
+    <!-- Storage permissions for accessing photos and videos -->
     <!-- READ_MEDIA_IMAGES for API 33+ (Android 13+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- READ_MEDIA_VIDEO for API 33+ (Android 13+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 
     <!-- READ_EXTERNAL_STORAGE for API 32 and below -->
     <uses-permission

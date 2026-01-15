@@ -3,21 +3,32 @@ package com.example.photosapp.presentation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.photosapp.domain.model.Photo
@@ -47,7 +58,7 @@ fun PhotoGrid(
 }
 
 /**
- * Individual photo thumbnail displayed as a square.
+ * Individual photo thumbnail displayed as a square with optional video/favorite indicators.
  */
 @Composable
 private fun PhotoThumbnail(
@@ -64,10 +75,101 @@ private fun PhotoThumbnail(
                 .data(photo.uri)
                 .crossfade(true)
                 .build(),
-            contentDescription = "Photo ${photo.id}",
+            contentDescription = if (photo.isVideo) "Video ${photo.id}" else "Photo ${photo.id}",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
+
+        // Video indicator (top-right corner with duration)
+        if (photo.isVideo) {
+            VideoIndicator(
+                duration = photo.duration,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+            )
+        }
+
+        // Favorite indicator (bottom-left corner)
+        if (photo.isFavorite) {
+            FavoriteIndicator(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(4.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Video indicator showing play icon and duration.
+ */
+@Composable
+private fun VideoIndicator(
+    duration: Long,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .background(
+                color = Color.Black.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(4.dp)
+            )
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Filled.PlayArrow,
+            contentDescription = "Video",
+            modifier = Modifier.size(12.dp),
+            tint = Color.White
+        )
+        Text(
+            text = formatDuration(duration),
+            color = Color.White,
+            fontSize = 10.sp
+        )
+    }
+}
+
+/**
+ * Favorite indicator showing heart icon.
+ */
+@Composable
+private fun FavoriteIndicator(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .background(
+                color = Color.Black.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(4.dp)
+            )
+            .padding(3.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Favorite,
+            contentDescription = "Favorite",
+            modifier = Modifier.size(12.dp),
+            tint = Color.White
+        )
+    }
+}
+
+/**
+ * Formats duration in milliseconds to M:SS or H:MM:SS format.
+ */
+private fun formatDuration(durationMs: Long): String {
+    val totalSeconds = durationMs / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%d:%02d", minutes, seconds)
     }
 }
 

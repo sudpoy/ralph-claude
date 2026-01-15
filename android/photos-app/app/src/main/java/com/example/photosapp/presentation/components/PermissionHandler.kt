@@ -18,42 +18,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PermissionHandler(
     onPermissionGranted: @Composable () -> Unit
 ) {
-    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_IMAGES
+    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        listOf(
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_VIDEO
+        )
     } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
+        listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
-    val permissionState = rememberPermissionState(permission)
+    val permissionState = rememberMultiplePermissionsState(permissions)
 
     when {
-        permissionState.status.isGranted -> {
+        permissionState.allPermissionsGranted -> {
             onPermissionGranted()
         }
-        permissionState.status.shouldShowRationale -> {
+        permissionState.shouldShowRationale -> {
             PermissionRationale(
-                onRequestPermission = { permissionState.launchPermissionRequest() }
+                onRequestPermission = { permissionState.launchMultiplePermissionRequest() }
             )
         }
         else -> {
             PermissionDenied(
-                onRequestPermission = { permissionState.launchPermissionRequest() }
+                onRequestPermission = { permissionState.launchMultiplePermissionRequest() }
             )
         }
     }
 
     LaunchedEffect(Unit) {
-        if (!permissionState.status.isGranted) {
-            permissionState.launchPermissionRequest()
+        if (!permissionState.allPermissionsGranted) {
+            permissionState.launchMultiplePermissionRequest()
         }
     }
 }
