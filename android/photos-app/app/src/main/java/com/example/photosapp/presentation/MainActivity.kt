@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import com.example.photosapp.presentation.components.BottomNavBar
 import com.example.photosapp.presentation.components.NavItem
 import com.example.photosapp.presentation.components.PermissionHandler
+import com.example.photosapp.presentation.components.TopBar
 import com.example.photosapp.presentation.theme.PhotosAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -56,6 +57,9 @@ private fun PhotosContent() {
     var selectedNavItem by remember { mutableStateOf(NavItem.Photos) }
 
     Scaffold(
+        topBar = {
+            TopBar()
+        },
         bottomBar = {
             BottomNavBar(
                 selectedItem = selectedNavItem,
