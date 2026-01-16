@@ -35,16 +35,11 @@ fun TopBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Action buttons on the right
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Profile avatar with circular border
-            ProfileAvatar(onClick = onProfileClick)
-        }
+        // Profile avatar with circular border
+        ProfileAvatar(onClick = onProfileClick)
     }
 }
 
