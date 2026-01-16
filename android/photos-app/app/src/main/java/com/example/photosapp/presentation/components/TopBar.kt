@@ -5,16 +5,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,7 +29,6 @@ import com.example.photosapp.presentation.theme.PhotosAppTheme
 @Composable
 fun TopBar(
     modifier: Modifier = Modifier,
-    onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
     Row(
@@ -46,17 +42,6 @@ fun TopBar(
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Notification bell
-            IconButton(onClick = onNotificationClick) {
-                Icon(
-                    imageVector = Icons.Outlined.Notifications,
-                    contentDescription = "Notifications",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(modifier = Modifier.width(4.dp))
-
             // Profile avatar with circular border
             ProfileAvatar(onClick = onProfileClick)
         }
