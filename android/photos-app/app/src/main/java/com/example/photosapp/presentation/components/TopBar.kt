@@ -44,9 +44,6 @@ fun TopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Backup complete chip on the left
-        BackupStatusChip()
-
         // Action buttons on the right
         Row(
             verticalAlignment = Alignment.CenterVertically
