@@ -28,6 +28,14 @@ sealed class PhotosUiState {
 }
 
 /**
+ * Sealed class representing navigation state for photo viewing.
+ */
+sealed class PhotoViewerNavState {
+    data object Hidden : PhotoViewerNavState()
+    data class Viewing(val initialIndex: Int) : PhotoViewerNavState()
+}
+
+/**
  * ViewModel for managing photo grid state.
  * Loads photos from the repository and groups them by month/year.
  */
@@ -38,6 +46,9 @@ class PhotosViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<PhotosUiState>(PhotosUiState.Loading)
     val uiState: StateFlow<PhotosUiState> = _uiState.asStateFlow()
+
+    private val _viewerNavState = MutableStateFlow<PhotoViewerNavState>(PhotoViewerNavState.Hidden)
+    val viewerNavState: StateFlow<PhotoViewerNavState> = _viewerNavState.asStateFlow()
 
     private val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
 
@@ -77,5 +88,26 @@ class PhotosViewModel @Inject constructor(
         return photos.groupBy { photo ->
             monthYearFormat.format(Date(photo.dateTaken))
         }
+    }
+
+    /**
+     * Opens the full-screen photo viewer at the specified index.
+     * @param photo The photo that was clicked
+     */
+    fun openPhotoViewer(photo: Photo) {
+        val currentState = _uiState.value
+        if (currentState is PhotosUiState.Success) {
+            val index = currentState.photos.indexOf(photo)
+            if (index >= 0) {
+                _viewerNavState.value = PhotoViewerNavState.Viewing(initialIndex = index)
+            }
+        }
+    }
+
+    /**
+     * Closes the full-screen photo viewer and returns to the gallery.
+     */
+    fun closePhotoViewer() {
+        _viewerNavState.value = PhotoViewerNavState.Hidden
     }
 }

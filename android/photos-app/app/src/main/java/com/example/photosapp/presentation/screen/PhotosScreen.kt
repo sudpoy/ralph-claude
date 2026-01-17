@@ -1,5 +1,6 @@
 package com.example.photosapp.presentation.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import com.example.photosapp.presentation.components.NavItem
 import com.example.photosapp.presentation.components.PhotoGridSection
 import com.example.photosapp.presentation.components.TopBar
 import com.example.photosapp.presentation.viewmodel.PhotosUiState
+import com.example.photosapp.presentation.viewmodel.PhotoViewerNavState
 import com.example.photosapp.presentation.viewmodel.PhotosViewModel
 
 /**
@@ -58,6 +60,7 @@ fun PhotosScreen(
 ) {
     var selectedNavItem by remember { mutableStateOf(NavItem.Photos) }
     val uiState by viewModel.uiState.collectAsState()
+    val viewerNavState by viewModel.viewerNavState.collectAsState()
 
     // Sample memories for display (placeholder until real data is available)
     val sampleMemories = remember {
@@ -69,28 +72,49 @@ fun PhotosScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopBar()
-        },
-        bottomBar = {
-            BottomNavBar(
-                selectedItem = selectedNavItem,
-                onItemSelected = { selectedNavItem = it }
+    // Use Box to overlay viewer on grid - keeps grid in composition to preserve scroll state
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Gallery grid - always composed to preserve scroll position
+        Scaffold(
+            topBar = {
+                TopBar()
+            },
+            bottomBar = {
+                BottomNavBar(
+                    selectedItem = selectedNavItem,
+                    onItemSelected = { selectedNavItem = it }
+                )
+            }
+        ) { paddingValues ->
+            PhotosScreenContent(
+                uiState = uiState,
+                memories = sampleMemories,
+                onRetry = { viewModel.loadPhotos() },
+                onPhotoClick = { photo, _ ->
+                    viewModel.openPhotoViewer(photo)
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
             )
         }
-    ) { paddingValues ->
-        PhotosScreenContent(
-            uiState = uiState,
-            memories = sampleMemories,
-            onRetry = { viewModel.loadPhotos() },
-            onPhotoClick = { photo, index ->
-                // TODO: Navigate to full-screen photo viewer (US-009)
-            },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        )
+
+        // Full-screen photo viewer overlay
+        if (viewerNavState is PhotoViewerNavState.Viewing) {
+            val navState = viewerNavState as PhotoViewerNavState.Viewing
+
+            // Handle back button/gesture to close the viewer
+            BackHandler { viewModel.closePhotoViewer() }
+
+            val photos = (uiState as? PhotosUiState.Success)?.photos ?: emptyList()
+            if (photos.isNotEmpty()) {
+                PhotoViewerScreen(
+                    photos = photos,
+                    initialIndex = navState.initialIndex,
+                    onDismiss = { viewModel.closePhotoViewer() }
+                )
+            }
+        }
     }
 }
 
