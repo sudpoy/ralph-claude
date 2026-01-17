@@ -6,11 +6,16 @@ import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,9 +33,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.photosapp.domain.model.Photo
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Full-screen photo viewer screen with horizontal paging.
@@ -79,6 +88,50 @@ fun PhotoViewerScreen(
                 onZoomChange = { zoom -> currentZoom = zoom }
             )
         }
+
+        // Metadata overlay at top of screen
+        val currentPhoto = photos.getOrNull(pagerState.currentPage)
+        if (currentPhoto != null) {
+            PhotoMetadataOverlay(
+                photo = currentPhoto,
+                modifier = Modifier.align(Alignment.TopStart)
+            )
+        }
+    }
+}
+
+/**
+ * Overlay displaying photo metadata at the top of the screen.
+ * Shows date in readable format and photo dimensions.
+ */
+@Composable
+private fun PhotoMetadataOverlay(
+    photo: Photo,
+    modifier: Modifier = Modifier
+) {
+    val dateFormat = remember { SimpleDateFormat("MMMM d, yyyy", Locale.getDefault()) }
+    val formattedDate = remember(photo.dateTaken) {
+        dateFormat.format(Date(photo.dateTaken))
+    }
+    val dimensions = "${photo.width} × ${photo.height}"
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = formattedDate,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White
+        )
+        Text(
+            text = dimensions,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.7f)
+        )
     }
 }
 
