@@ -1,6 +1,7 @@
 package com.example.photosapp.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -36,10 +37,15 @@ import com.example.photosapp.presentation.theme.PhotosAppTheme
 
 /**
  * Photo grid displaying thumbnails in a 4-column layout.
+ *
+ * @param photos List of photos to display
+ * @param onPhotoClick Callback invoked when a photo is clicked, with the photo and its index
+ * @param modifier Optional modifier for the grid
  */
 @Composable
 fun PhotoGrid(
     photos: List<Photo>,
+    onPhotoClick: (photo: Photo, index: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -52,23 +58,33 @@ fun PhotoGrid(
             items = photos,
             key = { it.id }
         ) { photo ->
-            PhotoThumbnail(photo = photo)
+            val index = photos.indexOf(photo)
+            PhotoThumbnail(
+                photo = photo,
+                onClick = { onPhotoClick(photo, index) }
+            )
         }
     }
 }
 
 /**
  * Individual photo thumbnail displayed as a square with optional video/favorite indicators.
+ *
+ * @param photo The photo to display
+ * @param onClick Callback invoked when the thumbnail is clicked
+ * @param modifier Optional modifier for the thumbnail
  */
 @Composable
-private fun PhotoThumbnail(
+fun PhotoThumbnail(
     photo: Photo,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick)
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
@@ -176,10 +192,15 @@ private fun formatDuration(durationMs: Long): String {
 /**
  * Non-scrollable photo grid for embedding in a scrollable parent.
  * Calculates height based on photo count and displays all photos at once.
+ *
+ * @param photos List of photos to display
+ * @param onPhotoClick Callback invoked when a photo is clicked, with the photo and its index
+ * @param modifier Optional modifier for the grid section
  */
 @Composable
 fun PhotoGridSection(
     photos: List<Photo>,
+    onPhotoClick: (photo: Photo, index: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val thumbnailSize = 90.dp // Approximate size for calculation
@@ -201,7 +222,11 @@ fun PhotoGridSection(
             items = photos,
             key = { it.id }
         ) { photo ->
-            PhotoThumbnail(photo = photo)
+            val index = photos.indexOf(photo)
+            PhotoThumbnail(
+                photo = photo,
+                onClick = { onPhotoClick(photo, index) }
+            )
         }
     }
 }

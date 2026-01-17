@@ -84,6 +84,9 @@ fun PhotosScreen(
             uiState = uiState,
             memories = sampleMemories,
             onRetry = { viewModel.loadPhotos() },
+            onPhotoClick = { photo, index ->
+                // TODO: Navigate to full-screen photo viewer (US-009)
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -96,12 +99,19 @@ fun PhotosScreen(
  * Layout order:
  * 1. MemoriesSection (horizontally scrollable)
  * 2. Scrollable content containing month headers + photo grids
+ *
+ * @param uiState Current UI state (loading, error, or success with photos)
+ * @param memories List of memories to display in the memories section
+ * @param onRetry Callback to retry loading photos on error
+ * @param onPhotoClick Callback invoked when a photo is clicked
+ * @param modifier Optional modifier
  */
 @Composable
 private fun PhotosScreenContent(
     uiState: PhotosUiState,
     memories: List<Memory>,
     onRetry: () -> Unit,
+    onPhotoClick: (photo: com.example.photosapp.domain.model.Photo, index: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -128,7 +138,10 @@ private fun PhotosScreenContent(
                 if (uiState.photos.isEmpty()) {
                     EmptyContent()
                 } else {
-                    PhotosByMonthContent(photosByMonth = uiState.photosByMonth)
+                    PhotosByMonthContent(
+                        photosByMonth = uiState.photosByMonth,
+                        onPhotoClick = onPhotoClick
+                    )
                 }
             }
         }
@@ -260,16 +273,22 @@ private fun ErrorContent(
 /**
  * Photos grouped by month with MonthHeader before each section.
  * Each month section contains a header and a grid of photos.
+ *
+ * @param photosByMonth Map of month/year strings to lists of photos
+ * @param onPhotoClick Callback invoked when a photo is clicked
+ * @param modifier Optional modifier
  */
 @Composable
 private fun PhotosByMonthContent(
     photosByMonth: Map<String, List<com.example.photosapp.domain.model.Photo>>,
+    onPhotoClick: (photo: com.example.photosapp.domain.model.Photo, index: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     photosByMonth.forEach { (monthYear, photos) ->
         MonthHeader(monthName = monthYear)
         PhotoGridSection(
             photos = photos,
+            onPhotoClick = onPhotoClick,
             modifier = Modifier.fillMaxWidth()
         )
     }
