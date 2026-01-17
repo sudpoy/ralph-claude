@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.photosapp.domain.model.Photo
@@ -67,10 +69,15 @@ fun PhotoViewerScreen(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
-            beyondViewportPageCount = 1
+            beyondViewportPageCount = 1,
+            // Disable paging when zoomed in to allow panning
+            userScrollEnabled = currentZoom <= MIN_ZOOM
         ) { pageIndex ->
             val photo = photos[pageIndex]
-            PhotoPage(photo = photo)
+            PhotoPage(
+                photo = photo,
+                onZoomChange = { zoom -> currentZoom = zoom }
+            )
         }
     }
 }
@@ -81,7 +88,7 @@ private const val DOUBLE_TAP_ZOOM = 2f
 
 /**
  * Individual photo page within the pager.
- * Supports pinch-to-zoom and double-tap zoom gestures.
+ * Supports pinch-to-zoom, double-tap zoom, and pan gestures.
  */
 @Composable
 private fun PhotoPage(
@@ -92,76 +99,118 @@ private fun PhotoPage(
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
-    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
-        val newScale = (scale * zoomChange).coerceIn(MIN_ZOOM, MAX_ZOOM)
-
-        // Calculate new offset based on zoom change
-        // When zooming, we want to zoom toward the center of the pinch gesture
-        val newOffset = if (newScale > MIN_ZOOM) {
-            offset + panChange
-        } else {
-            Offset.Zero
-        }
-
-        scale = newScale
-        offset = newOffset
-        onZoomChange(newScale)
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onDoubleTap = { tapOffset ->
-                        // Toggle between 1x and 2x zoom on double-tap
-                        if (scale > MIN_ZOOM) {
-                            // Reset to 1x
-                            scale = MIN_ZOOM
-                            offset = Offset.Zero
-                        } else {
-                            // Zoom to 2x centered on tap point
-                            scale = DOUBLE_TAP_ZOOM
-                            // Calculate offset to center the tap point
-                            val centerX = size.width / 2f
-                            val centerY = size.height / 2f
-                            offset = Offset(
-                                x = (centerX - tapOffset.x) * (DOUBLE_TAP_ZOOM - 1),
-                                y = (centerY - tapOffset.y) * (DOUBLE_TAP_ZOOM - 1)
-                            )
-                        }
-                        onZoomChange(scale)
-                    }
-                )
-            }
-            .transformable(state = transformableState),
+    BoxWithConstraints(
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        SubcomposeAsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(photo.uri)
-                .crossfade(true)
-                .build(),
-            contentDescription = if (photo.isVideo) "Video ${photo.id}" else "Photo ${photo.id}",
+        val density = LocalDensity.current
+        val containerWidthPx = with(density) { maxWidth.toPx() }
+        val containerHeightPx = with(density) { maxHeight.toPx() }
+
+        /**
+         * Calculate the maximum allowed offset based on current scale.
+         * When zoomed in, the photo can be panned within the bounds of the scaled content.
+         * The formula: maxOffset = (scaledSize - containerSize) / 2
+         * This ensures the photo edges cannot be panned past the container edges.
+         */
+        fun calculateMaxOffset(currentScale: Float): Offset {
+            // When scaled, the content extends beyond the container
+            // We can pan up to half the extra width/height in each direction
+            val maxOffsetX = ((containerWidthPx * currentScale - containerWidthPx) / 2f).coerceAtLeast(0f)
+            val maxOffsetY = ((containerHeightPx * currentScale - containerHeightPx) / 2f).coerceAtLeast(0f)
+            return Offset(maxOffsetX, maxOffsetY)
+        }
+
+        /**
+         * Clamp the offset to prevent panning beyond photo edges.
+         */
+        fun clampOffset(rawOffset: Offset, currentScale: Float): Offset {
+            val maxOffset = calculateMaxOffset(currentScale)
+            return Offset(
+                x = rawOffset.x.coerceIn(-maxOffset.x, maxOffset.x),
+                y = rawOffset.y.coerceIn(-maxOffset.y, maxOffset.y)
+            )
+        }
+
+        val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
+            val newScale = (scale * zoomChange).coerceIn(MIN_ZOOM, MAX_ZOOM)
+
+            // Calculate new offset based on zoom change
+            val newOffset = if (newScale > MIN_ZOOM) {
+                // When zooming, adjust offset to maintain zoom focus point
+                // Then add the pan change for dragging
+                val scaledOffset = offset * (newScale / scale) + panChange
+                clampOffset(scaledOffset, newScale)
+            } else {
+                Offset.Zero
+            }
+
+            scale = newScale
+            offset = newOffset
+            onZoomChange(newScale)
+        }
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer(
-                    scaleX = scale,
-                    scaleY = scale,
-                    translationX = offset.x,
-                    translationY = offset.y
-                ),
-            contentScale = ContentScale.Fit,
-            loading = {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = { tapOffset ->
+                            // Toggle between 1x and 2x zoom on double-tap
+                            if (scale > MIN_ZOOM) {
+                                // Reset to 1x
+                                scale = MIN_ZOOM
+                                offset = Offset.Zero
+                            } else {
+                                // Zoom to 2x centered on tap point
+                                scale = DOUBLE_TAP_ZOOM
+                                // Calculate offset to center the tap point
+                                val centerX = size.width / 2f
+                                val centerY = size.height / 2f
+                                val rawOffset = Offset(
+                                    x = (centerX - tapOffset.x) * (DOUBLE_TAP_ZOOM - 1),
+                                    y = (centerY - tapOffset.y) * (DOUBLE_TAP_ZOOM - 1)
+                                )
+                                // Clamp the offset to photo bounds
+                                val maxOffset = calculateMaxOffset(DOUBLE_TAP_ZOOM)
+                                offset = Offset(
+                                    x = rawOffset.x.coerceIn(-maxOffset.x, maxOffset.x),
+                                    y = rawOffset.y.coerceIn(-maxOffset.y, maxOffset.y)
+                                )
+                            }
+                            onZoomChange(scale)
+                        }
                     )
                 }
-            }
-        )
+                .transformable(state = transformableState),
+            contentAlignment = Alignment.Center
+        ) {
+            SubcomposeAsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(photo.uri)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = if (photo.isVideo) "Video ${photo.id}" else "Photo ${photo.id}",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offset.x,
+                        translationY = offset.y
+                    ),
+                contentScale = ContentScale.Fit,
+                loading = {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            )
+        }
     }
 }
