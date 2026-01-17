@@ -1,5 +1,9 @@
 package com.example.photosapp.presentation.screen
 
+import android.app.Activity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -17,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -33,7 +38,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.photosapp.domain.model.Photo
@@ -63,6 +72,38 @@ fun PhotoViewerScreen(
     // Track zoom level for each page to reset on navigation
     var currentZoom by remember { mutableFloatStateOf(1f) }
 
+    // Track overlay visibility (visible by default when entering full-screen)
+    var isOverlayVisible by remember { mutableStateOf(true) }
+
+    // Set up immersive mode controller
+    val view = LocalView.current
+    val window = (view.context as? Activity)?.window
+
+    // Handle immersive mode based on overlay visibility
+    DisposableEffect(isOverlayVisible) {
+        if (window != null) {
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+            if (isOverlayVisible) {
+                // Show system bars when overlay is visible
+                insetsController.show(WindowInsetsCompat.Type.systemBars())
+            } else {
+                // Hide system bars when overlay is hidden
+                insetsController.hide(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+
+        onDispose {
+            // Restore system bars when leaving the screen
+            if (window != null) {
+                val insetsController = WindowCompat.getInsetsController(window, view)
+                insetsController.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
     // Reset zoom when page changes
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect {
@@ -85,17 +126,22 @@ fun PhotoViewerScreen(
             val photo = photos[pageIndex]
             PhotoPage(
                 photo = photo,
-                onZoomChange = { zoom -> currentZoom = zoom }
+                onZoomChange = { zoom -> currentZoom = zoom },
+                onTap = { isOverlayVisible = !isOverlayVisible }
             )
         }
 
-        // Metadata overlay at top of screen
+        // Metadata overlay at top of screen with fade animation
         val currentPhoto = photos.getOrNull(pagerState.currentPage)
         if (currentPhoto != null) {
-            PhotoMetadataOverlay(
-                photo = currentPhoto,
+            AnimatedVisibility(
+                visible = isOverlayVisible,
+                enter = fadeIn(),
+                exit = fadeOut(),
                 modifier = Modifier.align(Alignment.TopStart)
-            )
+            ) {
+                PhotoMetadataOverlay(photo = currentPhoto)
+            }
         }
     }
 }
@@ -141,13 +187,14 @@ private const val DOUBLE_TAP_ZOOM = 2f
 
 /**
  * Individual photo page within the pager.
- * Supports pinch-to-zoom, double-tap zoom, and pan gestures.
+ * Supports pinch-to-zoom, double-tap zoom, pan gestures, and single tap to toggle overlay.
  */
 @Composable
 private fun PhotoPage(
     photo: Photo,
     modifier: Modifier = Modifier,
-    onZoomChange: (Float) -> Unit = {}
+    onZoomChange: (Float) -> Unit = {},
+    onTap: () -> Unit = {}
 ) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -208,6 +255,10 @@ private fun PhotoPage(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTapGestures(
+                        onTap = {
+                            // Single tap toggles overlay visibility
+                            onTap()
+                        },
                         onDoubleTap = { tapOffset ->
                             // Toggle between 1x and 2x zoom on double-tap
                             if (scale > MIN_ZOOM) {
