@@ -2,10 +2,14 @@ package com.example.photosapp.presentation.screen
 
 import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
@@ -27,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -46,22 +51,32 @@ import androidx.core.view.WindowInsetsControllerCompat
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.photosapp.domain.model.Photo
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
+
+// Dismiss threshold in dp - drag beyond this to dismiss
+private const val DISMISS_THRESHOLD_DP = 100f
+// Minimum scale when dragging to dismiss (0.8 = 80%)
+private const val MIN_DISMISS_SCALE = 0.8f
 
 /**
  * Full-screen photo viewer screen with horizontal paging.
  * Displays photos in a horizontal pager allowing swipe navigation.
+ * Supports swipe-down-to-dismiss gesture.
  *
  * @param photos List of all photos to display
  * @param initialIndex Index of the photo to show first
+ * @param onDismiss Callback when the viewer should be dismissed
  * @param modifier Optional modifier
  */
 @Composable
 fun PhotoViewerScreen(
     photos: List<Photo>,
     initialIndex: Int,
+    onDismiss: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(
@@ -74,6 +89,19 @@ fun PhotoViewerScreen(
 
     // Track overlay visibility (visible by default when entering full-screen)
     var isOverlayVisible by remember { mutableStateOf(true) }
+
+    // Dismiss gesture state
+    val density = LocalDensity.current
+    val dismissThresholdPx = with(density) { DISMISS_THRESHOLD_DP.dp.toPx() }
+    val coroutineScope = rememberCoroutineScope()
+    val dismissOffsetY = remember { Animatable(0f) }
+
+    // Calculate dismiss progress (0 = no drag, 1 = at threshold)
+    val dismissProgress = (abs(dismissOffsetY.value) / dismissThresholdPx).coerceIn(0f, 1f)
+    // Scale decreases from 1.0 to MIN_DISMISS_SCALE as dismissProgress increases
+    val dismissScale = 1f - (dismissProgress * (1f - MIN_DISMISS_SCALE))
+    // Background alpha decreases from 1.0 to 0.0 as dismissProgress increases
+    val backgroundAlpha = 1f - dismissProgress
 
     // Set up immersive mode controller
     val view = LocalView.current
@@ -114,11 +142,57 @@ fun PhotoViewerScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(Color.Black.copy(alpha = backgroundAlpha))
     ) {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = dismissScale
+                    scaleY = dismissScale
+                    translationY = dismissOffsetY.value
+                }
+                .pointerInput(currentZoom) {
+                    // Only allow dismiss gesture when not zoomed
+                    if (currentZoom <= MIN_ZOOM) {
+                        detectVerticalDragGestures(
+                            onDragEnd = {
+                                coroutineScope.launch {
+                                    if (abs(dismissOffsetY.value) > dismissThresholdPx) {
+                                        // Dismiss the viewer
+                                        onDismiss()
+                                    } else {
+                                        // Snap back to center with spring animation
+                                        dismissOffsetY.animateTo(
+                                            targetValue = 0f,
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                stiffness = Spring.StiffnessMedium
+                                            )
+                                        )
+                                    }
+                                }
+                            },
+                            onDragCancel = {
+                                coroutineScope.launch {
+                                    dismissOffsetY.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    )
+                                }
+                            },
+                            onVerticalDrag = { _, dragAmount ->
+                                coroutineScope.launch {
+                                    dismissOffsetY.snapTo(dismissOffsetY.value + dragAmount)
+                                }
+                            }
+                        )
+                    }
+                },
             beyondViewportPageCount = 1,
             // Disable paging when zoomed in to allow panning
             userScrollEnabled = currentZoom <= MIN_ZOOM
