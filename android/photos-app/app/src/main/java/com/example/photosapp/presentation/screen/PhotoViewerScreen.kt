@@ -1,6 +1,7 @@
 package com.example.photosapp.presentation.screen
 
 import android.app.Activity
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -72,6 +73,7 @@ private const val MIN_DISMISS_SCALE = 0.8f
  * @param onDismiss Callback when the viewer should be dismissed
  * @param modifier Optional modifier
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PhotoViewerScreen(
     photos: List<Photo>,
@@ -193,17 +195,17 @@ fun PhotoViewerScreen(
                         )
                     }
                 },
-            beyondViewportPageCount = 1,
             // Disable paging when zoomed in to allow panning
-            userScrollEnabled = currentZoom <= MIN_ZOOM
-        ) { pageIndex ->
-            val photo = photos[pageIndex]
-            PhotoPage(
-                photo = photo,
-                onZoomChange = { zoom -> currentZoom = zoom },
-                onTap = { isOverlayVisible = !isOverlayVisible }
-            )
-        }
+            userScrollEnabled = currentZoom <= MIN_ZOOM,
+            pageContent = { pageIndex ->
+                val photo = photos[pageIndex]
+                PhotoPage(
+                    photo = photo,
+                    onZoomChange = { zoom -> currentZoom = zoom },
+                    onTap = { isOverlayVisible = !isOverlayVisible }
+                )
+            }
+        )
 
         // Metadata overlay at top of screen with fade animation
         val currentPhoto = photos.getOrNull(pagerState.currentPage)
