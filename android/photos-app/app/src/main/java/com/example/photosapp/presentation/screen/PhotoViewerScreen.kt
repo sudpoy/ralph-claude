@@ -154,56 +154,61 @@ fun PhotoViewerScreen(
                     scaleX = dismissScale
                     scaleY = dismissScale
                     translationY = dismissOffsetY.value
-                }
-                .pointerInput(currentZoom) {
-                    // Only allow dismiss gesture when not zoomed
-                    if (currentZoom <= MIN_ZOOM) {
-                        detectVerticalDragGestures(
-                            onDragEnd = {
-                                coroutineScope.launch {
-                                    if (abs(dismissOffsetY.value) > dismissThresholdPx) {
-                                        // Dismiss the viewer
-                                        onDismiss()
-                                    } else {
-                                        // Snap back to center with spring animation
-                                        dismissOffsetY.animateTo(
-                                            targetValue = 0f,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessMedium
-                                            )
-                                        )
-                                    }
-                                }
-                            },
-                            onDragCancel = {
-                                coroutineScope.launch {
-                                    dismissOffsetY.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessMedium
-                                        )
-                                    )
-                                }
-                            },
-                            onVerticalDrag = { _, dragAmount ->
-                                coroutineScope.launch {
-                                    dismissOffsetY.snapTo(dismissOffsetY.value + dragAmount)
-                                }
-                            }
-                        )
-                    }
                 },
             // Disable paging when zoomed in to allow panning
             userScrollEnabled = currentZoom <= MIN_ZOOM,
             pageContent = { pageIndex ->
                 val photo = photos[pageIndex]
-                PhotoPage(
-                    photo = photo,
-                    onZoomChange = { zoom -> currentZoom = zoom },
-                    onTap = { isOverlayVisible = !isOverlayVisible }
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(currentZoom) {
+                            // Only allow dismiss gesture when not zoomed
+                            if (currentZoom <= MIN_ZOOM) {
+                                detectVerticalDragGestures(
+                                    onDragEnd = {
+                                        coroutineScope.launch {
+                                            if (abs(dismissOffsetY.value) > dismissThresholdPx) {
+                                                // Dismiss the viewer
+                                                onDismiss()
+                                            } else {
+                                                // Snap back to center with spring animation
+                                                dismissOffsetY.animateTo(
+                                                    targetValue = 0f,
+                                                    animationSpec = spring(
+                                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                        stiffness = Spring.StiffnessMedium
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onDragCancel = {
+                                        coroutineScope.launch {
+                                            dismissOffsetY.animateTo(
+                                                targetValue = 0f,
+                                                animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessMedium
+                                                )
+                                            )
+                                        }
+                                    },
+                                    onVerticalDrag = { _, dragAmount ->
+                                        coroutineScope.launch {
+                                            dismissOffsetY.snapTo(dismissOffsetY.value + dragAmount)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                ) {
+                    PhotoPage(
+                        photo = photo,
+                        onZoomChange = { zoom -> currentZoom = zoom },
+                        onTap = { isOverlayVisible = !isOverlayVisible }
+                    )
+                }
             }
         )
 
